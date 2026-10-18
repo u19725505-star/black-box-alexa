@@ -1,1 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Black Box for Alexa+</title>
+<style>
+:root{--bg:#0b1020;--card:#151b2e;--ink:#e8ecf5;--mut:#8b95b0;--acc:#2dd4ff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,system-ui,sans-serif}
+header{padding:14px 18px;border-bottom:1px solid #243051}
+h1{margin:0;font-size:18px}
+header p{margin:2px 0 0;color:var(--mut);font-size:13px}
+main{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:14px}
+h2{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc)}
+#chat{height:300px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.msg{padding:8px 10px;border-radius:12px;max-width:90%}
+.me{background:#243051;align-self:flex-end}
+.ai{background:#0f2a3a;border:1px solid #1d4b63;align-self:flex-start}
+.row{display:flex;gap:6px;margin-top:8px}
+input{flex:1;padding:10px;border-radius:10px;border:1px solid #243051;background:#0b1020;color:var(--ink);font-size:16px}
+button{padding:8px 10px;border-radius:10px;border:0;background:#243051;color:var(--ink);font-size:13px}
+button.go{background:var(--acc);color:#04202b;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ent{border-left:3px solid var(--acc);padding:6px 8px;margin:6px 0;background:#0f1526;border-radius:6px;font-size:13px}
+.ent.blocked,.ent.declined{border-color:var(--bad)}
+.ent.held{border-color:var(--warn)}
+.ent.u{opacity:.5;text-decoration:line-through}
+.mono{font-family:ui-monospace,Menlo,monospace;color:var(--mut);font-size:11px}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+<h1>Black Box for Alexa+</h1>
+<p>A flight recorder and undo layer for agentic assistant actions. Simulated Alexa+ experience.</p>
+</header>
+<main>
+<section>
+<div class="card">
+<h2>Alexa+ (simulated)</h2>
+<div id="chat"></div>
+<div class="row"><input id="inp" placeholder="Ask Alexa+ to do something..." autocomplete="off"><button class="go" id="send">Send</button></div>
+<div class="chips" id="chips"></div>
+</div>
+<div class="card">
+<h2>Guardrails</h2>
+<div id="rails"></div>
+<div class="chips">
+<button id="night">Toggle day / night</button>
+</div>
+</div>
+</section>
+<section>
+<div class="card">
+<h2>Black Box ledger</h2>
+<div>Chain status: <span id="chain">empty</span></div>
+<div class="chips">
+<button id="verify">Verify chain</button>
+<button id="tamper">Tamper demo</button>
+<button id="reset">Reset</button>
+</div>
+<div id="ledger"></div>
+</div>
+<div class="card">
+<h2>Simulated home</h2>
+<div id="dev"></div>
+</div>
+</section>
+</main>
+<script>
+const S={thermo:70,orders:[],cal:[],limit:25,quiet:true,night:false,pending:null};
+let ledger=[],n=0;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function sha(s){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+const fp=(e,prev)=>JSON.stringify([e.id,e.ts,e.tool,e.args,e.request,e.reason,e.status,prev]);
+function say(who,t){
+  const d=document.createElement('div');
+  d.className='msg '+who;d.textContent=t;
+  $('chat').appendChild(d);$('chat').scrollTop=1e9;
+}
 
+/* ---- Black Box tools ---- */
+async function record(e){
+  const prev=ledger.length?ledger[ledger.length-1].hash:'GENESIS';
+  const body={id:++n,ts:new Date().toISOString(),tool:e.tool,args:e.args||{},request:e.request,reason:e.reason,status:e.status||'done'};
+  body.prev=prev;
+  body.hash=await sha(fp(body,prev));
+  ledger.push({...body,undo:e.undo||null,undone:false});
+  render();
+  return body;
+}
+async function verify(){
+  let prev='GENESIS';
+  for(const e of ledger){
+    const h=await sha(fp(e,prev));
+    if(e.prev!==prev||e.hash!==h)return e.id;
+    prev=e.hash;
+  }
+  return 0;
+}
+function explain(id){
+  const e=id?ledger.find(x=>x.id===id):ledger[ledger.length-1];
+  if(!e){say('ai','I have not done anything yet.');return}
+  say('ai',`#${e.id} ${e.tool}. You said: "${e.request}". Why: ${e.reason} Status: ${e.status}${e.undone?' (later undone)':''}. Fingerprint ${e.hash.slice(0,10)}, chained to ${e.prev.slice(0,10)}.`);
+}
+async function doUndo(k){
+  const c=[...ledger].reverse().filter(e=>e.status==='done'&&e.undo&&!e.undone).slice(0,k);
+  if(!c.length){say('ai','There is nothing to undo.');return}
+  for(const e of c){
+    e.undo();e.undone=true;
+    await record({tool:'undo_action',args:{target:e.id},request:'undo',reason:`Reversed #${e.id} (${e.tool}) at your request.`});
+  }
+  say('ai','Undone: '+c.map(e=>'#'+e.id+' '+e.tool).join(', ')+'.');
+  render();
+}
+
+/* ---- Simulated agent actions ---- */
+async function exec(p,confirmed){
+  if(p.tool==='place_order'){
+    const o={item:p.args.item,amount:p.args.amount};S.orders.push(o);
+    await record({tool:'place_order',args:p.args,request:p.request,reason:p.reason+(confirmed?' You confirmed the spending hold.':''),undo:()=>{S.orders=S.orders.filter(x=>x!==o)}});
+    say('ai',`Ordered ${o.item} for $${o.amount}.`);
+  }
+  if(p.tool==='set_thermostat'){
+    const prev=S.thermo;S.thermo=p.args.temp;
+    await record({tool:'set_thermostat',args:p.args,request:p.request,reason:p.reason,undo:()=>{S.thermo=prev}});
+    say('ai',`Thermostat set to ${p.args.temp}°F.`);
+  }
+  if(p.tool==='add_event'){
+    const ev={title:p.args.title};S.cal.push(ev);
+    await record({tool:'add_event',args:p.args,request:p.request,reason:p.reason,undo:()=>{S.cal=S.cal.filter(x=>x!==ev)}});
+    say('ai',`Added to your calendar: ${ev.title}.`);
+  }
+  render();
+}
+async function act(text){
+  const t=text.trim();if(!t)return;
+  say('me',t);
+  const l=t.toLowerCase();
+  if(S.pending&&/^(yes|confirm|go ahead|approve)/.test(l)){const p=S.pending;S.pending=null;return exec(p,true)}
+  if(S.pending&&/^(no|cancel|deny)/.test(l)){
+    const p=S.pending;S.pending=null;
+    await record({tool:p.tool,args:p.args,request:p.request,reason:'Held by your spending guardrail and you declined.',status:'declined'});
+    return say('ai','Okay, I cancelled it.');
+  }
+  if(/undo/.test(l)){
+    const m=l.match(/(\d+)/);
+    return doUndo(m?+m[1]:(/last two|two/.test(l)?2:1));
+  }
+  if(/\b(why|explain)\b/.test(l)){
+    const m=l.match(/#(\d+)/);
+    return explain(m?+m[1]:0);
+  }
+  const lim=l.match(/(?:limit|ask me before spending over)\D*(\d+)/);
+  if(lim){
+    S.limit=+lim[1];
+    await record({tool:'set_guardrail',args:{limit:S.limit},request:t,reason:`You set the spending limit to $${S.limit}.`});
+    return say('ai',`Got it. I will ask before spending over $${S.limit}.`);
+  }
+  if(/quiet hours/.test(l)){
+    S.quiet=!/off/.test(l);
+    await record({tool:'set_guardrail',args:{quiet:S.quiet},request:t,reason:`You turned quiet hours ${S.quiet?'on':'off'}.`});
+    return say('ai',`Quiet hours are ${S.quiet?'on':'off'}.`);
+  }
+  if(/thermostat|temperature|degrees/.test(l)){
+    const m=l.match(/(\d{2})/);const temp=m?+m[1]:68;
+    if(S.quiet&&S.night){
+      await record({tool:'set_thermostat',args:{temp},request:t,reason:'Blocked by your quiet-hours guardrail (no thermostat changes at night).',status:'blocked'});
+      return say('ai','I did not change it. Your quiet-hours guardrail blocks thermostat changes at night.');
+    }
+    return exec({tool:'set_thermostat',args:{temp},request:t,reason:`You asked for ${temp}°F. No guardrail applied.`});
+  }
+  if(/\b(order|buy)\b/.test(l)){
+    const m=t.match(/\$\s?(\d+(?:\.\d+)?)/);const amount=m?+m[1]:20;
+    const item=(t.replace(/\$\s?\d+(\.\d+)?/,'').replace(/^(please\s+)?(order|buy)\s*/i,'').trim())||'groceries';
+    const p={tool:'place_order',args:{item,amount},request:t,reason:`You asked me to buy ${item}. Total $${amount} is within your $${S.limit} limit.`};
+    if(amount>S.limit){
+      S.pending=p;
+      await record({tool:'place_order',args:{item,amount},request:t,reason:`Total $${amount} is over your $${S.limit} limit, so I paused for your approval.`,status:'held'});
+      return say('ai',`That is $${amount}, over your $${S.limit} limit. Say "confirm" to approve or "cancel".`);
+    }
+    return exec(p);
+  }
+  if(/book|schedule|calendar/.test(l)){
+    const title=t.replace(/^(please\s+)?(book|schedule|add)\s*/i,'')||'Event';
+    return exec({tool:'add_event',args:{title},request:t,reason:'You asked me to put this on your calendar.'});
+  }
+  say('ai','Try: order groceries $18, order headphones $79, set thermostat to 66, book dinner Friday 7pm, why did you do that, undo the last 2.');
+}
+
+/* ---- UI ---- */
+function render(){
+  const L=$('ledger');L.innerHTML='';
+  [...ledger].reverse().forEach(e=>{
+    const d=document.createElement('div');
+    d.className='ent '+e.status+(e.undone?' u':'');
+    d.innerHTML=`<b>#${e.id} ${esc(e.tool)}</b> <span class="mono">${esc(e.status)}</span><br>${esc(e.request)}<br><span class="mono">hash ${e.hash.slice(0,12)} ← ${e.prev.slice(0,12)}</span> <button data-id="${e.id}">Why?</button>`;
+    L.appendChild(d);
+  });
+  L.querySelectorAll('button').forEach(b=>b.onclick=()=>explain(+b.dataset.id));
+  $('dev').innerHTML=`Thermostat: <b>${S.thermo}°F</b><br>Orders: ${S.orders.length?S.orders.map(o=>esc(o.item)+' ($'+o.amount+')').join(', '):'none'}<br>Calendar: ${S.cal.length?S.cal.map(c=>esc(c.title)).join(', '):'empty'}`;
+  $('rails').innerHTML=`Ask before spending over <b>$${S.limit}</b><br>Quiet hours (no thermostat changes at night): <b>${S.quiet?'on':'off'}</b><br>Simulated time: <b>${S.night?'11:00 PM':'3:00 PM'}</b>`;
+}
+async function check(){
+  const bad=await verify();
+  $('chain').innerHTML=bad?`<span class="bad">BROKEN at entry #${bad}</span>`:`<span class="ok">intact (${ledger.length} entries)</span>`;
+}
+$('send').onclick=()=>{act($('inp').value);$('inp').value=''};
+$('inp').addEventListener('keydown',e=>{if(e.key==='Enter'){act($('inp').value);$('inp').value=''}});
+$('night').onclick=()=>{S.night=!S.night;render()};
+$('verify').onclick=check;
+$('tamper').onclick=()=>{
+  const e=ledger.find(x=>x.tool==='place_order')||ledger[0];
+  if(!e){say('ai','Do something first, then tamper with the record.');return}
+  e.request=e.request+' (edited later)';render();check();
+};
+$('reset').onclick=()=>{
+  Object.assign(S,{thermo:70,orders:[],cal:[],limit:25,quiet:true,night:false,pending:null});
+  ledger=[];n=0;$('chat').innerHTML='';$('chain').textContent='empty';
+  say('ai','Hi, I am Alexa+. What would you like me to do?');render();
+};
+['Order groceries $18','Order headphones $79','confirm','Set thermostat to 66','Book dinner Friday 7pm','Why did you do that?','Undo the last 2'].forEach(c=>{
+  const b=document.createElement('button');b.textContent=c;b.onclick=()=>act(c);$('chips').appendChild(b);
+});
+say('ai','Hi, I am Alexa+. What would you like me to do?');
+render();
+</script>
+</body>
+</html>
