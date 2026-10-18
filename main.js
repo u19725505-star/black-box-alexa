@@ -99,15 +99,41 @@ async function demo(){
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let rec=null,listening=false;
 function mic(){
-  if(!SR){toast('Speech recognition is not supported in this browser','bad');return}
-  if(listening&&rec){rec.stop();return}
-  try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
-  rec=new SR();rec.lang='en-US';rec.interimResults=false;rec.maxAlternatives=1;
-  rec.onstart=()=>{listening=true;setOrb('listening');$('mic').classList.add('on')};
-  rec.onend=()=>{listening=false;setOrb('idle');$('mic').classList.remove('on')};
-  rec.onerror=()=>{toast('Could not hear that. Try again.','bad')};
-  rec.onresult=e=>{const t=e.results[0][0].transcript;setTab('assistant');act(t)};
-  try{rec.start()}catch(e){}
+  if(!SR){toast('Voice input is not supported here. Use the keyboard microphone key instead.','bad');return}
+  if(listening&&rec){try{rec.stop()}catch(e){}return}
+  const wasVoice=S.voice;
+  S.voice=false;
+  const r=new SR();
+  rec=r;
+  r.lang='en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  let finalText='';
+  r.onstart=()=>{listening=true;setOrb('listening');$('mic').classList.add('on');toast('Listening… speak now')};
+  r.onaudiostart=()=>toast('Mic audio is on');
+  r.onspeechstart=()=>toast('Heard speech');
+  r.onresult=e=>{
+    let t='';
+    for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
+    $('inp').value=t;
+    if(e.results[e.results.length-1].isFinal)finalText=t;
+  };
+  r.onerror=e=>{
+    const m={
+      'not-allowed':'Microphone blocked. Allow it for this site in Safari, then reload.',
+      'service-not-allowed':'Speech service is off. Turn on Dictation and Siri in Settings.',
+      'no-speech':'No speech detected. Tap the mic and speak right away.',
+      'audio-capture':'No microphone found.',
+      'network':'Speech needs an internet connection.',
+      'aborted':'Interrupted by the browser (aborted).'
+    };
+    toast(m[e.error]||('Voice error: '+e.error),'bad');
+  };
+  r.onend=()=>{
+    listening=false;setOrb('idle');$('mic').classList.remove('on');
+    S.voice=wasVoice;
+    const t=(finalText||$('inp').value||'').trim();
+    if(t){$('inp').value='';setTab('assistant');act(t)}
+  };
+  try{r.start()}catch(err){S.voice=wasVoice;toast('Could not start the microphone: '+err.message,'bad')}
 }
 
 function submit(){const v=$('inp').value;$('inp').value='';act(v)}
@@ -147,39 +173,4 @@ $('nt').addEventListener('change',()=>{S.night=$('nt').checked;render();toast('S
 window.addEventListener('resize',moveInd);
 resetAll(false);
 setTimeout(moveInd,100);
-function mic2(){
-  if(!SR){toast('Voice input is not supported here. Use the keyboard microphone key instead.','bad');return}
-  if(listening&&rec){try{rec.stop()}catch(e){}return}
-  try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
-  const r=new SR();
-  rec=r;
-  r.lang='en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
-  let finalText='';
-  r.onstart=()=>{listening=true;setOrb('listening');$('mic').classList.add('on');toast('Listening… speak now')};
-  r.onresult=e=>{
-    let t='';
-    for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
-    $('inp').value=t;
-    if(e.results[e.results.length-1].isFinal)finalText=t;
-  };
-  r.onerror=e=>{
-    const m={
-      'not-allowed':'Microphone blocked. Allow it for this site in Safari, then reload.',
-      'service-not-allowed':'Speech service is off. Turn on Dictation and Siri in Settings.',
-      'no-speech':'No speech detected. Tap the mic and speak right away.',
-      'audio-capture':'No microphone found.',
-      'network':'Speech needs an internet connection.',
-      'aborted':'Listening stopped.',
-      'language-not-supported':'Language not supported.'
-    };
-    toast(m[e.error]||('Voice error: '+e.error),'bad');
-  };
-  r.onend=()=>{
-    listening=false;setOrb('idle');$('mic').classList.remove('on');
-    const t=(finalText||$('inp').value||'').trim();
-    if(t){$('inp').value='';setTab('assistant');act(t)}
-  };
-  try{r.start()}catch(err){toast('Could not start the microphone: '+err.message,'bad')}
-}
-$('mic').onclick=mic2;
 /* END */
