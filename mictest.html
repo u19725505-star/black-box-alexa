@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mic test</title>
+<style>
+body{font:18px -apple-system,sans-serif;padding:20px;background:#111;color:#eee}
+button{font-size:22px;padding:16px 28px;border-radius:14px;border:0;background:#22d3ee}
+pre{white-space:pre-wrap;background:#000;padding:12px;border-radius:10px}
+</style>
+</head>
+<body>
+<h2>Mic test (speech recognition only)</h2>
+<button id="b">Start</button>
+<pre id="log">Tap Start, then say: order groceries for 18 dollars</pre>
+<script>
+var log=document.getElementById('log');
+function L(t){log.textContent+='\n'+new Date().toLocaleTimeString()+'  '+t}
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+L('SpeechRecognition available: '+!!SR);
+document.getElementById('b').onclick=function(){
+  if(!SR){L('Not supported');return}
+  var r=new SR();
+  r.lang='en-US';
+  ['start','audiostart','soundstart','speechstart','speechend','soundend','audioend','end','nomatch'].forEach(function(n){
+    r['on'+n]=function(){L(n)};
+  });
+  r.onerror=function(e){L('ERROR: '+e.error+' '+(e.message||''))};
+  r.onresult=function(e){
+    var t='';
+    for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
+    L('RESULT: '+t);
+  };
+  try{r.start();L('start() called')}catch(x){L('start threw: '+x.message)}
+};
+</script>
+</body>
+</html>
