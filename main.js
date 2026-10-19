@@ -112,11 +112,28 @@ $('lim').addEventListener('change',()=>{
   S.limit=+$('lim').value;
   record({tool:'set_guardrail',args:{limit:S.limit},request:'Changed in Guardrails tab',reason:`You set the spending limit to $${S.limit}.`});
 });
-$('qh').addEventListener('change',()=>{
-  S.quiet=$('qh').checked;
-  record({tool:'set_guardrail',args:{quiet:S.quiet},request:'Changed in Guardrails tab',reason:`You turned quiet hours ${S.quiet?'on':'off'}.`});
+$('qh').addEventListener('change',async()=>{
+  const next=$('qh').checked;
+  // Do not present a local policy change as active until the MCP server confirms it.
+  $('qh').checked=S.quiet;
+  $('qh').disabled=true;
+  try{
+    await record({tool:'set_guardrail',args:{quiet:next},request:'Changed in Guardrails tab',reason:`You turned quiet hours ${next?'on':'off'}.`});
+    const synced=await mcpQ;
+    if(!synced) throw new Error('MCP server did not confirm the guardrail update');
+    S.quiet=next;
+    render();
+    toast('Quiet hours '+(S.quiet?'ON':'OFF')+' · server synced','ok');
+  }catch(e){
+    render();
+    toast('Guardrail not changed: MCP server sync failed. Reconnect and retry.','bad');
+  }finally{$('qh').disabled=false}
 });
-$('nt').addEventListener('change',()=>{S.night=$('nt').checked;render();toast('Simulated time: '+(S.night?'11:00 PM':'3:00 PM'))});
+$('nt').addEventListener('change',()=>{
+  S.night=$('nt').value==='night';
+  render();
+  toast('Simulated time: '+(S.night?'11:00 PM · Night':'3:00 PM · Day'),'ok');
+});
 ['Order groceries $18','Order headphones $79','confirm','Set thermostat to 66','Book dinner Friday 7pm','Why did you do that?','Undo the last 2','Recap'].forEach(c=>{
   const b=document.createElement('button');b.textContent=c;b.onclick=()=>act(c);$('chips').appendChild(b);
 });
