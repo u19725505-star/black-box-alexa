@@ -69,7 +69,7 @@ async function demo(){
   running=true;$('demo').disabled=true;$('demo').textContent='Running…';
   try{
     resetAll(true);setTab('assistant');await sleep(400);
-    await narrate('Meet Black Box, a flight recorder and undo layer for agentic assistants. Watch what happens when Alexa plus acts on my behalf.');
+    await narrate('Meet Black Box for Alexa+: a simulated assistant experience with an MCP server for action guardrails, explanations, undo workflows, and verifiable history.');
     await step('Order groceries $18');
     await step('Order headphones $79');
     await narrate('That one is over my twenty five dollar limit, so it paused and asked me first.');
