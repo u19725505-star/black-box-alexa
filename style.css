@@ -204,3 +204,13 @@ footer{max-width:1040px;margin:14px auto 0;padding:14px 24px 0;border-top:1px so
 .mcp-tool small{display:block;margin-top:4px;color:var(--mut);font-size:10px;line-height:1.45}
 @media(max-width:700px){.mcp-connect-card{margin:16px 16px 0;padding:20px;grid-template-columns:1fr;gap:16px}.mcp-connect-actions{display:grid;grid-template-columns:58px minmax(0,1fr);align-items:center}.connect-orb{height:55px}.connect-orb:before{width:47px;height:47px}.connect-orb span{width:27px;height:27px}.connect-button{min-height:45px}.connect-meta{grid-column:1/-1;padding-left:4px}.mcp-tools-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.mcp-connect-card{padding:17px;border-radius:17px}.endpoint{align-items:flex-start}.endpoint code{font-size:10px}.mcp-tools-list{grid-template-columns:1fr}.mcp-connect-actions{grid-template-columns:46px minmax(0,1fr)}.connect-orb:before{width:39px;height:39px}.connect-orb span{width:23px;height:23px}}
+
+/* Accessible simulated-time selector; works reliably on touch devices. */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.time-control{display:block;flex:none;max-width:100%}
+.time-select{min-height:42px;max-width:100%;padding:9px 34px 9px 12px;border:1px solid var(--line-strong);border-radius:12px;background:#111b31;color:var(--ink);font:inherit;font-size:13px;font-weight:650;cursor:pointer;accent-color:var(--a)}
+.time-select:focus-visible{outline:2px solid var(--a);outline-offset:3px}
+.time-select option{background:#111b31;color:var(--ink)}
+.sw input:disabled{cursor:wait}
+.sw:has(input:disabled){opacity:.6}
+@media(max-width:420px){.time-select{font-size:12px;padding:8px 25px 8px 9px}}
