@@ -5,6 +5,10 @@ const mcpFeed=[];
 function setMcpPill(t,c){
   const p=document.getElementById('mcp');
   if(p){p.textContent='MCP: '+t;p.className='pill '+(c||'')}
+  const s=document.getElementById('mcp-connect-status');
+  if(s){s.textContent=t;s.className='connect-status '+(c||'')}
+  const orb=document.querySelector('.connect-orb');
+  if(orb)orb.classList.toggle('connected',!!c&&c.includes('ok'));
 }
 function summ(name,r){
   try{
@@ -83,18 +87,37 @@ function mcpAuthorize(tool,args,confirmed){
   return p;
 }
 async function mcpConnect(){
-  setMcpPill('connecting…','');
+  const btn=document.getElementById('mcp-connect-button');
+  const retry=document.getElementById('mcp-retry-button');
+  if(btn){btn.disabled=true;btn.textContent='Connecting…'}
+  if(retry)retry.hidden=true;
+  setMcpPill('Connecting to hosted MCP server…','');
   try{
-    await mcpRpc('initialize',{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'black-box-web',version:'1.0.0'}});
+    const init=await mcpRpc('initialize',{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'black-box-web',version:'1.0.0'}});
     const r=await mcpRpc('tools/list');
     mcpTools=r.tools||[];
     mcpOnline=true;
-    setMcpPill('connected · '+mcpTools.length+' tools','ok');
-    toast('MCP server connected: '+mcpTools.length+' tools','ok');
+    setMcpPill('Connected · '+mcpTools.length+' tools','ok');
+    const count=document.getElementById('mcp-tool-count');
+    if(count)count.textContent=mcpTools.length+' tools discovered';
+    const protocol=document.getElementById('mcp-protocol-label');
+    if(protocol)protocol.textContent='Protocol '+(init.protocolVersion||'negotiated');
+    const wrap=document.getElementById('mcp-tools-wrap');
+    const list=document.getElementById('mcp-tools-list');
+    if(wrap)wrap.hidden=false;
+    if(list)list.innerHTML=mcpTools.map(function(t){
+      return '<div class="mcp-tool"><span class="tool-mark">↗</span><div><strong>'+esc(t.name)+'</strong><small>'+esc(t.description||'Remote MCP tool')+'</small></div></div>';
+    }).join('');
+    if(btn){btn.textContent='Connected';btn.disabled=true}
+    toast('Connected to remote MCP server · '+mcpTools.length+' tools discovered','ok');
   }catch(e){
     mcpOnline=false;
-    setMcpPill('offline','bad');
-    toast('MCP server not reachable yet. Tap the MCP pill to retry.','bad');
+    setMcpPill('Connection failed · '+e.message,'bad');
+    if(btn){btn.disabled=false;btn.textContent='Connect to MCP server'}
+    if(retry)retry.hidden=false;
+    const count=document.getElementById('mcp-tool-count');
+    if(count)count.textContent='No tools loaded';
+    toast('Could not connect to the MCP server. Check the service and retry.','bad');
   }
 }
 
@@ -124,10 +147,18 @@ document.getElementById('tamper').onclick=tamper;
   const h=document.querySelector('.hctl');
   if(h){
     const s=document.createElement('span');
-    s.id='mcp';s.className='pill';s.style.cursor='pointer';
-    s.onclick=mcpConnect;
+    s.id='mcp';s.className='pill';s.textContent='MCP: not connected';
     h.insertBefore(s,h.firstChild);
   }
+  const connect=document.getElementById('mcp-connect-button');
+  const retry=document.getElementById('mcp-retry-button');
+  if(connect)connect.addEventListener('click',mcpConnect);
+  if(retry)retry.addEventListener('click',mcpConnect);
+  const copy=document.getElementById('copyMcpUrl');
+  if(copy)copy.addEventListener('click',async function(){
+    try{await navigator.clipboard.writeText(MCP_URL);toast('MCP endpoint copied','ok')}
+    catch(e){toast('Endpoint: '+MCP_URL)}
+  });
   const led=document.getElementById('p-ledger');
   if(led){
     const c=document.createElement('div');
@@ -136,6 +167,5 @@ document.getElementById('tamper').onclick=tamper;
     led.appendChild(c);
   }
   renderFeed();
-  mcpConnect();
 })();
 /* END */
