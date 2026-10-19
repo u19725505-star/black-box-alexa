@@ -1,39 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mic test</title>
-<style>
-body{font:18px -apple-system,sans-serif;padding:20px;background:#111;color:#eee}
-button{font-size:22px;padding:16px 28px;border-radius:14px;border:0;background:#22d3ee}
-pre{white-space:pre-wrap;background:#000;padding:12px;border-radius:10px}
-</style>
-</head>
-<body>
-<h2>Mic test (speech recognition only)</h2>
-<button id="b">Start</button>
-<pre id="log">Tap Start, then say: order groceries for 18 dollars</pre>
-<script>
-var log=document.getElementById('log');
-function L(t){log.textContent+='\n'+new Date().toLocaleTimeString()+'  '+t}
-var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-L('SpeechRecognition available: '+!!SR);
-document.getElementById('b').onclick=function(){
-  if(!SR){L('Not supported');return}
-  var r=new SR();
-  r.lang='en-US';
-  ['start','audiostart','soundstart','speechstart','speechend','soundend','audioend','end','nomatch'].forEach(function(n){
-    r['on'+n]=function(){L(n)};
-  });
-  r.onerror=function(e){L('ERROR: '+e.error+' '+(e.message||''))};
-  r.onresult=function(e){
-    var t='';
-    for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
-    L('RESULT: '+t);
+(function(){
+  var btn=document.getElementById('mic');
+  var inp=document.getElementById('inp');
+  if(!btn||!inp)return;
+  function fallback(){
+    toast('Voice service is unavailable on this iPad. Tap the keyboard mic key to dictate instead.','bad');
+    inp.focus();
+  }
+  btn.onclick=function(){
+    if(!SR){fallback();return}
+    if(listening&&rec){try{rec.stop()}catch(e){}return}
+    var wasVoice=S.voice;
+    S.voice=false;
+    var r=new SR();
+    rec=r;
+    r.lang='en-US';r.interimResults=true;r.continuous=false;
+    var finalText='',failed=false;
+    r.onstart=function(){listening=true;setOrb('listening');btn.classList.add('on')};
+    r.onresult=function(e){
+      var t='';
+      for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
+      inp.value=t;
+      if(e.results[e.results.length-1].isFinal)finalText=t;
+    };
+    r.onerror=function(e){
+      failed=true;
+      if(e.error==='no-speech'){toast('No speech detected. Try again.','bad')}
+      else if(e.error==='not-allowed'){toast('Microphone blocked for this site.','bad')}
+      else{fallback()}
+    };
+    r.onend=function(){
+      listening=false;setOrb('idle');btn.classList.remove('on');S.voice=wasVoice;
+      var t=(finalText||inp.value||'').trim();
+      if(t&&!failed){inp.value='';setTab('assistant');act(t)}
+    };
+    try{r.start()}catch(err){S.voice=wasVoice;fallback()}
   };
-  try{r.start();L('start() called')}catch(x){L('start threw: '+x.message)}
-};
-</script>
-</body>
-</html>
+})();
+/* END */
