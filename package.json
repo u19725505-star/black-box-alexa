@@ -1,7 +1,7 @@
 {
   "name": "black-box-alexa",
   "version": "1.0.0",
-  "description": "Black Box for Alexa+: MCP server providing a tamper-evident flight recorder, explain, undo and guardrails for agentic assistant actions.",
+  "description": "Black Box for Alexa+: a simulated assistant interface and Streamable HTTP MCP server for action guardrails, explanations, undo workflows, and hash-chain verification.",
   "type": "module",
   "main": "server.js",
   "scripts": {
