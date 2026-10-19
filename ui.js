@@ -40,8 +40,8 @@ function renderHome(){
 }
 function renderRails(){
   $('lim').value=S.limit;$('limv').textContent='$'+S.limit;
-  $('qh').checked=S.quiet;$('nt').checked=S.night;
-  $('timev').textContent=S.night?'11:00 PM (night)':'3:00 PM (day)';
+  $('qh').checked=S.quiet;$('nt').value=S.night?'night':'day';
+  $('timev').textContent=S.night?'11:00 PM · Night':'3:00 PM · Day';
 }
 function render(){renderStrip();renderStats();renderLedger();renderHome();renderRails()}
 
