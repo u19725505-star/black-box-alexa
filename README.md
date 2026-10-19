@@ -20,22 +20,56 @@ When an assistant can take actions, users need to understand what was requested,
 - **MCP server and traffic panel:** The browser connects to the deployed MCP endpoint, lists available tools, and queues server calls. The Ledger tab adds a panel showing recent MCP calls, durations, and results.
 - **Speech output:** The browser may read assistant responses aloud using its speech-synthesis support. Input is typed; speech recognition is not implemented in this prototype.
 
-## Try the demo
+## Judge quick start — follow these steps in order
 
-1. Open the [web demo](https://u19725505-star.github.io/black-box-alexa/).
-2. Tap **Run demo** for a narrated walkthrough, or enter the following requests in the Assistant tab:
-   - `Order groceries $18`
-   - `Order headphones $79` — the MCP server should hold this because its default spending threshold is $25.
-   - `confirm`
-   - `Set thermostat to 66`
-   - `Book dinner Friday 7pm`
-   - `Why did you do that?`
-   - `Undo the last 2`
-3. Open **Guardrails**, enable simulated night mode, and try `Set thermostat to 66`. With quiet hours enabled, the MCP server should block the change.
-4. Open **Ledger**, select **Verify chain**, then **Tamper demo**, then **Verify chain** again. The demo should show the edited local record as broken.
-5. Review **MCP traffic** at the bottom of the Ledger tab to see calls made to the remote server.
+**Expected time: 3–5 minutes.** The server is already hosted on Render; judges do not need to upload or install it.
 
-The browser now waits for the remote MCP server's policy result before executing a simulated order, thermostat change, or calendar action. A `block` stops the action, a `hold` pauses for typed confirmation, and an unavailable/invalid policy response fails closed. The browser and server still keep separate ledgers, so their entry IDs and histories can diverge.
+### 1. Open the live website
+
+Go to the [Black Box for Alexa+ web demo](https://u19725505-star.github.io/black-box-alexa/). Near the top, find **Connect the MCP server**. If you do not see the connection panel, refresh the page once to load the latest version.
+
+### 2. Connect to the remote MCP server
+
+Tap **Connect to MCP server** and wait for the status to change to **Connected**. The panel should show the number of discovered tools and a list of tool names. The first request can take up to a minute if the free hosted service is waking from sleep.
+
+If the connection fails, tap **Retry connection** once. If it still fails, continue to the [standalone MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) to capture the diagnostic result; the endpoint is `https://black-box-alexa.onrender.com/mcp`.
+
+### 3. Run the assistant demo
+
+Tap **Run demo**, or open the **Assistant** tab and enter these requests one at a time:
+
+1. `Order groceries $18` — a low-value simulated purchase.
+2. `Order headphones $79` — should be held by the default $25 spending rule.
+3. Type `confirm` if you want to demonstrate the approval flow.
+4. `Set thermostat to 66` — a simulated thermostat action.
+5. `Book dinner Friday 7pm` — a simulated calendar action.
+6. `Why did you do that?` — asks for an explanation of the latest action.
+7. `Undo the last 2` — demonstrates the simulated undo workflow.
+
+These are examples for the prototype, not real purchases, device commands, or calendar bookings.
+
+### 4. Demonstrate the guardrails
+
+Open **Guardrails** and review the spending threshold and quiet-hours setting. Enable simulated night mode and quiet hours, then try `Set thermostat to 66`. The expected result is a blocked simulated action with an explanation. Return to the Guardrails tab to restore settings if needed.
+
+### 5. Inspect the ledger and verify integrity
+
+Open **Ledger** and review the recorded actions, their statuses, and explanations. Run **Verify chain** to check the local ledger. Then run **Tamper demo** followed by **Verify chain** again; the intentional edit should be detected. Reset the local demo afterward if you want a clean presentation.
+
+### 6. Run the separate live MCP test (recommended evidence)
+
+Open the [MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) and tap **Run MCP test**. This directly calls the hosted server and tests initialization, tool discovery, policy decisions, server-ledger recording, explanation, undo, hash verification, and tamper detection. A successful run ends with **ALL TESTS PASSED**.
+
+**Important:** the MCP test page calls the shared server's `demo_reset` and `demo_tamper` tools. It clears and intentionally modifies the server's demo ledger during the test, so do not run it while another judge is using the shared server. It resets the server ledger at the end of a successful run.
+
+### What judges should verify
+
+- The main website explicitly reports a successful MCP connection and displays discovered tools.
+- The high-value purchase and quiet-hours scenario produce the expected policy decisions.
+- The app explains actions and shows local ledger verification results.
+- The standalone test page reports its individual checks and final result.
+- The demo is clearly labeled as simulated and does not claim to control real Alexa+, devices, shopping, or calendars.
+
 
 ## MCP server
 
