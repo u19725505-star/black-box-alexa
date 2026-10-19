@@ -6,7 +6,7 @@ card.className='card';
 card.innerHTML='<h2>Ledger synchronization</h2><p>Browser and server ledgers are separate. Use Verify chain to check both.</p><div id="ledger-sync-status">Not checked yet.</div>';
 panel.insertBefore(card,panel.firstChild);
 const button=document.getElementById('verify');
-if(button)button.addEventListener('click',async function(){
+if(button)button.onclick=async function(){
 const el=document.getElementById('ledger-sync-status');
 el.textContent='Checking both ledgers…';
 try{
@@ -19,5 +19,5 @@ const match=ledger.length===rows.length&&ledger.every((e,i)=>rows[i]&&e.id===row
 el.textContent='Browser: '+(localBad?'BROKEN at #'+localBad:'intact, '+ledger.length+' entries')+'. Server: '+(remote.intact?'intact':'BROKEN at #'+remote.brokenAt)+', '+remote.entries+' entries. Sync: '+(match?'MATCH':'MISMATCH');
 el.className=match?'sync-match':'sync-mismatch';
 }catch(e){el.textContent='Remote verification unavailable: '+e.message;el.className='sync-mismatch'}
-});
+};
 })();
