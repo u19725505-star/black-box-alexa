@@ -25,13 +25,13 @@ When an assistant can take actions, users need to understand what was requested,
 1. Open the [web demo](https://u19725505-star.github.io/black-box-alexa/).
 2. Tap **Run demo** for a narrated walkthrough, or enter the following requests in the Assistant tab:
    - `Order groceries $18`
-   - `Order headphones $79` — the browser simulation holds this because its default spending threshold is $25.
+   - `Order headphones $79` — the MCP server should hold this because its default spending threshold is $25.
    - `confirm`
    - `Set thermostat to 66`
    - `Book dinner Friday 7pm`
    - `Why did you do that?`
    - `Undo the last 2`
-3. Open **Guardrails**, enable simulated night mode, and try `Set thermostat to 66`. With quiet hours enabled, the browser simulation blocks the change.
+3. Open **Guardrails**, enable simulated night mode, and try `Set thermostat to 66`. With quiet hours enabled, the MCP server should block the change.
 4. Open **Ledger**, select **Verify chain**, then **Tamper demo**, then **Verify chain** again. The demo should show the edited local record as broken.
 5. Review **MCP traffic** at the bottom of the Ledger tab to see calls made to the remote server.
 
@@ -106,7 +106,7 @@ This section is important when evaluating the prototype:
 - **In-memory state is temporary.** Server ledger and guardrail state reset on server restart. The browser ledger and simulated home state are in page memory and reset when the app is reset or reloaded.
 - **No speech input.** Responses can use browser speech synthesis, but commands are entered by typing. Speech recognition is not implemented.
 
-The next engineering step toward a stronger policy gateway would be to make the server's policy decision authoritative and require a successful `allow` result before any tool adapter executes an action. A production-oriented version would also need authentication, durable storage, explicit approval handling, and integrity protection for all mutable state.
+The next engineering steps are to authenticate policy requests and approval signals, add durable storage, protect destructive demo tools, and include all mutable state in integrity verification. The current gate protects the browser simulation only; it is not a security boundary for real services.
 
 ## Built during the hackathon
 
