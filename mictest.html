@@ -1,39 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Black Box — Microphone Test</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--card:#121a2d;--line:#2a3650;--text:#eef3ff;--muted:#9aabc8;--green:#65e6b2;--red:#ff8d9b;--blue:#86b7ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172441,var(--bg) 60%);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:22px 14px calc(28px + env(safe-area-inset-bottom))}
+main{max-width:760px;margin:auto}.brand{color:var(--green);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{font-size:clamp(27px,6vw,42px);line-height:1.08;margin:10px 0}p{color:var(--muted)}.card{background:rgba(18,26,45,.95);border:1px solid var(--line);border-radius:18px;padding:18px;margin:16px 0;box-shadow:0 12px 35px #0002}h2{font-size:18px;margin:0 0 8px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}button{border:1px solid #405170;border-radius:12px;background:#1a2740;color:var(--text);font:inherit;font-weight:700;padding:12px 15px;min-height:46px;cursor:pointer}button.primary{background:var(--green);color:#082019;border-color:var(--green)}button:disabled{opacity:.45;cursor:not-allowed}.status{padding:12px;border-radius:12px;background:#0a1223;border:1px solid var(--line);overflow-wrap:anywhere}.ok{color:var(--green)}.bad{color:var(--red)}.muted{color:var(--muted)}#transcript{min-height:68px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:18px}#log{max-height:290px;overflow:auto;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#080d18;padding:12px;border-radius:10px}.note{font-size:14px}.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);font-size:12px;margin:4px 4px 4px 0}.step{display:flex;justify-content:space-between;gap:10px;align-items:center}a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Black Box for Alexa+ · Diagnostics</div>
+  <h1>Microphone &amp; speech test</h1>
+  <p>This page tests the iPad browser independently from the Black Box assistant. It never executes commands or sends your transcript anywhere.</p>
+  <div class="card">
+    <h2>1 · Browser support</h2>
+    <div id="support" class="status">Checking browser capabilities…</div>
+    <p class="note">Use this page over HTTPS in Safari. “Speech recognition supported” only means the API exists; it does not guarantee the speech service will start successfully.</p>
+  </div>
+  <div class="card">
+    <h2>2 · Microphone permission test</h2>
+    <div id="micStatus" class="status">Not tested yet.</div>
+    <div class="actions"><button id="permissionBtn" class="primary">Test microphone permission</button></div>
+    <p class="note">This briefly opens the microphone, checks whether the browser can obtain an audio stream, then immediately stops it. Run this first, then run the speech test separately.</p>
+  </div>
+  <div class="card">
+    <h2>3 · Speech recognition test</h2>
+    <div id="speechStatus" class="status">Ready to test.</div>
+    <div class="actions">
+      <button id="startBtn" class="primary">Start speech test</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="clearBtn">Clear transcript &amp; log</button>
+    </div>
+    <p class="muted note">Tap Start, allow permission if asked, and speak a short phrase such as “hello Black Box”. Wait a few seconds for the result.</p>
+    <h2>Transcript (local only)</h2>
+    <div id="transcript" class="status" aria-live="polite">Your recognized words will appear here.</div>
+  </div>
+  <div class="card">
+    <div class="step"><h2>Diagnostic event log</h2><span class="tag">newest at bottom</span></div>
+    <div id="log" aria-live="polite">Waiting for a test…</div>
+    <p class="note">If microphone permission succeeds but recognition reports <code>aborted</code> or <code>kAFAssistantErrorDomain error 1107</code>, the browser exposed the API but its speech-recognition session failed. This page records the evidence; it cannot repair an iOS system speech-service failure.</p>
+  </div>
+  <p class="note">Fallback: use the iPad keyboard’s dictation microphone in the text field on the <a href="./">Black Box demo</a>. That uses keyboard dictation rather than this page’s Web Speech recognition session.</p>
+</main>
+<script>
 (function(){
-  var btn=document.getElementById('mic');
-  var inp=document.getElementById('inp');
-  if(!btn||!inp)return;
-  function fallback(){
-    toast('Voice service is unavailable on this iPad. Tap the keyboard mic key to dictate instead.','bad');
-    inp.focus();
+  'use strict';
+  var $=function(id){return document.getElementById(id)};
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+  var active=null, listening=false, lines=[];
+  function log(message){
+    var stamp=new Date().toLocaleTimeString();
+    lines.push('['+stamp+'] '+message);
+    if(lines.length>100)lines.shift();
+    $('log').textContent=lines.join('\n');
+    $('log').scrollTop=$('log').scrollHeight;
   }
-  btn.onclick=function(){
-    if(!SR){fallback();return}
-    if(listening&&rec){try{rec.stop()}catch(e){}return}
-    var wasVoice=S.voice;
-    S.voice=false;
-    var r=new SR();
-    rec=r;
-    r.lang='en-US';r.interimResults=true;r.continuous=false;
-    var finalText='',failed=false;
-    r.onstart=function(){listening=true;setOrb('listening');btn.classList.add('on')};
+  function status(id,message,kind){
+    $(id).textContent=message;
+    $(id).className='status'+(kind?' '+kind:'');
+  }
+  var secure=window.isSecureContext;
+  var media=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  $('support').innerHTML=
+    '<span class="'+(secure?'ok':'bad')+'">Secure context: '+(secure?'yes':'no')+'</span><br>'+
+    '<span class="'+(media?'ok':'bad')+'">Microphone stream API: '+(media?'available':'unavailable')+'</span><br>'+
+    '<span class="'+(SR?'ok':'bad')+'">Speech recognition API: '+(SR?'available':'not available in this browser')+'</span><br>'+
+    '<span class="muted">Browser: '+navigator.userAgent.replace(/[<>]/g,'')+'</span>';
+  log('Page loaded. Secure context='+secure+'; getUserMedia='+media+'; SpeechRecognition='+!!SR);
+  function setListening(on){
+    listening=on;
+    $('startBtn').disabled=on||!SR;
+    $('stopBtn').disabled=!on;
+  }
+  $('permissionBtn').addEventListener('click',async function(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      status('micStatus','This browser does not expose getUserMedia on this page. Check that the page is opened over HTTPS in Safari.','bad');
+      log('Permission test unavailable: getUserMedia missing.');
+      return;
+    }
+    $('permissionBtn').disabled=true;
+    status('micStatus','Requesting microphone access…');
+    log('Requesting microphone stream.');
+    var stream=null;
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+      var tracks=stream.getAudioTracks();
+      log('getUserMedia succeeded. Audio tracks='+tracks.length+(tracks[0]?' ; label='+tracks[0].label:''));
+      status('micStatus','SUCCESS — browser obtained microphone access. Audio stream was stopped immediately.','ok');
+    }catch(err){
+      var name=err&&err.name?err.name:'UnknownError';
+      log('getUserMedia failed: '+name+' — '+(err&&err.message?err.message:'no message'));
+      status('micStatus','FAILED — '+name+': '+(err&&err.message?err.message:'Could not access microphone.'),'bad');
+    }finally{
+      if(stream)stream.getTracks().forEach(function(track){track.stop()});
+      $('permissionBtn').disabled=false;
+      log('Permission test finished; all test audio tracks stopped.');
+    }
+  });
+  $('startBtn').addEventListener('click',function(){
+    if(!SR){
+      status('speechStatus','SpeechRecognition is not supported in this browser. Use keyboard dictation as a fallback.','bad');
+      log('Cannot start: SpeechRecognition unavailable.');
+      return;
+    }
+    if(listening&&active){try{active.stop()}catch(e){log('stop() threw: '+e.message)}return}
+    var r;
+    try{r=new SR()}catch(err){
+      status('speechStatus','Could not create speech recognizer: '+err.message,'bad');
+      log('Constructor failed: '+err.name+' — '+err.message);
+      return;
+    }
+    active=r;
+    r.lang='en-US';
+    r.interimResults=true;
+    r.continuous=false;
+    r.maxAlternatives=1;
+    r.onstart=function(){
+      setListening(true);
+      status('speechStatus','Listening — speak now.','ok');
+      log('event: start');
+    };
+    r.onaudiostart=function(){log('event: audiostart')};
+    r.onsoundstart=function(){log('event: soundstart')};
+    r.onspeechstart=function(){log('event: speechstart')};
+    r.onspeechend=function(){log('event: speechend')};
+    r.onsoundend=function(){log('event: soundend')};
+    r.onaudioend=function(){log('event: audioend')};
     r.onresult=function(e){
-      var t='';
-      for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript}
-      inp.value=t;
-      if(e.results[e.results.length-1].isFinal)finalText=t;
+      var interim='',final='';
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var item=e.results[i];
+        if(item.isFinal)final+=item[0].transcript;
+        else interim+=item[0].transcript;
+      }
+      if(final){
+        $('transcript').textContent=final;
+        log('event: result (final) — '+final);
+        status('speechStatus','SUCCESS — final transcript received.','ok');
+      }else if(interim){
+        $('transcript').textContent=interim+' …';
+        log('event: result (interim) — '+interim);
+      }
     };
     r.onerror=function(e){
-      failed=true;
-      if(e.error==='no-speech'){toast('No speech detected. Try again.','bad')}
-      else if(e.error==='not-allowed'){toast('Microphone blocked for this site.','bad')}
-      else{fallback()}
+      log('event: error — '+(e.error||'unknown')+(e.message?' — '+e.message:''));
+      var friendly={
+        'aborted':'Recognition aborted by the browser or speech service.',
+        'not-allowed':'Microphone permission was denied or blocked for this site.',
+        'service-not-allowed':'The browser speech service is unavailable or disabled.',
+        'no-speech':'No speech was detected before the session timed out.',
+        'audio-capture':'The browser could not obtain audio input.',
+        'network':'The speech service reported a network error.',
+        'language-not-supported':'The selected recognition language is not supported.'
+      };
+      status('speechStatus',(friendly[e.error]||'Speech recognition failed.')+' ('+(e.error||'unknown')+'). See the event log.','bad');
     };
     r.onend=function(){
-      listening=false;setOrb('idle');btn.classList.remove('on');S.voice=wasVoice;
-      var t=(finalText||inp.value||'').trim();
-      if(t&&!failed){inp.value='';setTab('assistant');act(t)}
+      log('event: end');
+      setListening(false);
+      if(active===r)active=null;
+      if($('speechStatus').className.indexOf('bad')<0 && $('speechStatus').textContent.indexOf('SUCCESS')!==0){
+        status('speechStatus','Session ended. Check transcript and event log.','muted');
+      }
     };
-    try{r.start()}catch(err){S.voice=wasVoice;fallback()}
-  };
+    $('transcript').textContent='Listening…';
+    status('speechStatus','Starting speech recognition…');
+    log('Calling recognition.start() from the Start button tap.');
+    try{r.start()}catch(err){
+      setListening(false);
+      active=null;
+      status('speechStatus','start() failed: '+err.name+': '+err.message,'bad');
+      log('start() threw synchronously: '+err.name+' — '+err.message);
+    }
+  });
+  $('stopBtn').addEventListener('click',function(){
+    if(!active)return;
+    log('Stop button tapped.');
+    try{active.stop()}catch(err){log('stop() threw: '+err.name+' — '+err.message);try{active.abort()}catch(ignore){}}
+  });
+  $('clearBtn').addEventListener('click',function(){
+    if(active){try{active.abort()}catch(ignore){}}
+    lines=[];
+    $('log').textContent='Log cleared.';
+    $('transcript').textContent='Your recognized words will appear here.';
+    status('speechStatus','Ready to test.');
+    setListening(false);
+    log('Log cleared by user.');
+  });
 })();
-/* END */
+</script>
+</body>
+</html>
