@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MCP test</title>
+<style>
+body{font:16px -apple-system,sans-serif;padding:20px;background:#0b1020;color:#eef2ff}
+button{font-size:20px;padding:14px 24px;border-radius:12px;border:0;background:#22d3ee;color:#04121c;font-weight:700}
+pre{white-space:pre-wrap;background:#000;padding:12px;border-radius:10px;font-size:14px}
+.ok{color:#34d399}.bad{color:#fb7185}
+</style>
+</head>
+<body>
+<h2>Black Box MCP server test</h2>
+<p>Calls the live server at <code>https://black-box-alexa.onrender.com/mcp</code> over Streamable HTTP.</p>
+<button id="go">Run MCP test</button>
+<pre id="log">Tap the button. The first call can take up to a minute if the server was asleep.</pre>
+<script>
+var MCP='https://black-box-alexa.onrender.com/mcp',rid=0,logEl=document.getElementById('log'),fails=0;
+function L(t,cls){
+  var s=document.createElement('span');
+  s.textContent=t+'\n';
+  if(cls)s.className=cls;
+  logEl.appendChild(s);
+}
+async function rpc(method,params){
+  var res=await fetch(MCP,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},
+    body:JSON.stringify({jsonrpc:'2.0',id:++rid,method:method,params:params||{}})
+  });
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  var ct=res.headers.get('content-type')||'';
+  var msg;
+  if(ct.indexOf('text/event-stream')>-1){
+    var txt=await res.text();
+    var lines=txt.split('\n').filter(function(l){return l.indexOf('data:')===0});
+    msg=JSON.parse(lines[lines.length-1].slice(5).trim());
+  }else{
+    msg=await res.json();
+  }
+  if(msg.error)throw new Error(msg.error.message||'MCP error');
+  return msg.result;
+}
+async function tool(name,args){
+  var r=await rpc('tools/call',{name:name,arguments:args||{}});
+  return JSON.parse(r.content[0].text);
+}
+function check(label,cond,detail){
+  if(!cond)fails++;
+  L((cond?'PASS  ':'FAIL  ')+label+'  -  '+detail,cond?'ok':'bad');
+}
+async function run(){
+  logEl.textContent='';
+  fails=0;
+  var t0=Date.now();
+  L('Connecting (may take up to a minute if the server was asleep)...');
+  try{
+    var init=await rpc('initialize',{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'mcptest',version:'1.0.0'}});
+    check('initialize',!!init.serverInfo,init.serverInfo?init.serverInfo.name+' '+init.serverInfo.version+' (protocol '+init.protocolVersion+')':'no serverInfo');
+    var tl=await rpc('tools/list');
+    check('tools/list',tl.tools.length>=7,tl.tools.length+' tools: '+tl.tools.map(function(x){return x.name}).join(', '));
+    await tool('demo_reset');
+    var c1=await tool('check_action',{tool:'place_order',amount:79});
+    check('check_action $79 order',c1.decision==='hold',c1.decision+' - '+c1.reason);
+    var c2=await tool('check_action',{tool:'set_thermostat',night:true});
+    check('check_action thermostat at night',c2.decision==='block',c2.decision+' - '+c2.reason);
+    var r1=await tool('record_action',{tool:'place_order',args:{item:'groceries',amount:18},request:'Order groceries $18',reason:'Within the $25 limit.'});
+    var r2=await tool('record_action',{tool:'set_thermostat',args:{temp:66},request:'Set thermostat to 66',reason:'No guardrail applied.'});
+    check('record_action x2',r1.entry.id===1&&r2.entry.prev===r1.entry.hash,'entry #2 chained to #1 ('+r2.entry.prev.slice(0,10)+')');
+    var v1=await tool('verify_chain');
+    check('verify_chain',v1.intact===true,'intact, '+v1.entries+' entries');
+    var ex=await tool('explain_action',{id:2});
+    check('explain_action #2',ex.found===true,ex.entry?ex.entry.request:'not found');
+    var u=await tool('undo_action',{count:1});
+    check('undo_action',u.undone.length===1,'undid #'+u.undone[0].id+' '+u.undone[0].tool);
+    await tool('demo_tamper');
+    var v2=await tool('verify_chain');
+    check('tamper detected',v2.intact===false&&v2.brokenAt===1,'chain broken at entry #'+v2.brokenAt);
+    await tool('demo_reset');
+  }catch(e){
+    fails++;
+    L('ERROR: '+e.message,'bad');
+  }
+  L('\n'+(fails?'FAILED ('+fails+')':'ALL TESTS PASSED')+' in '+((Date.now()-t0)/1000).toFixed(1)+'s',fails?'bad':'ok');
+}
+document.getElementById('go').onclick=run;
+</script>
+</body>
+</html>
