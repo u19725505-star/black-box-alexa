@@ -103,6 +103,31 @@ async function doUndo(k){
   render();
 }
 async function exec(p,confirmed){
+  /* The remote MCP policy is authoritative for every simulated action. If it is unreachable, stop safely. */
+  if(typeof mcpAuthorize==='function'){
+    let gate=null;
+    try{gate=await mcpAuthorize(p.tool,p.args||{},!!confirmed)}catch(e){gate=null}
+    if(!gate||!['allow','hold','block'].includes(gate.decision)){
+      toast('MCP policy unavailable; action was not executed.','bad');
+      say('ai','I could not verify the server policy, so I did not perform that action. Please retry when the MCP server is connected.');
+      return;
+    }
+    if(gate.decision==='block'){
+      await record({tool:p.tool,args:p.args||{},request:p.request,reason:gate.reason||'Blocked by server policy.',status:'blocked'});
+      say('ai','I did not perform that action. '+(gate.reason||'The server policy blocked it.'));
+      return;
+    }
+    if(gate.decision==='hold'&&!confirmed){
+      S.pending=p;
+      await record({tool:p.tool,args:p.args||{},request:p.request,reason:gate.reason||'Held for explicit user approval.',status:'held'});
+      say('ai',(gate.reason||'The server requires approval.')+' Say "confirm" to approve or "cancel" to decline.');
+      return;
+    }
+    if(gate.decision==='hold'&&confirmed){
+      toast('Server still requires approval; action stopped.','bad');
+      return;
+    }
+  }
   if(p.tool==='place_order'){
     const o={item:p.args.item,amount:p.args.amount};S.orders.push(o);
     await record({tool:'place_order',args:p.args,request:p.request,reason:p.reason+(confirmed?' You confirmed the spending hold.':''),undo:()=>{S.orders=S.orders.filter(x=>x!==o)}});
