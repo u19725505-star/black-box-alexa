@@ -136,7 +136,6 @@ document.getElementById('tamper').onclick=tamper;
     led.appendChild(c);
   }
   renderFeed();
-  mcpQueue('demo_reset',{});
   mcpConnect();
 })();
 /* END */
