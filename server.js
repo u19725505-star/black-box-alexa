@@ -59,13 +59,20 @@ function buildServer() {
         tool: z.string().describe('Action name, e.g. place_order or set_thermostat'),
         amount: z.number().optional().describe('Dollar amount for purchases'),
         night: z.boolean().optional().describe('True if it is currently quiet-hours time'),
+        approved: z.boolean().optional().describe('True only after the user explicitly confirms a previously held action'),
       },
     },
-    async ({ tool, amount, night }) => {
-      if (tool === 'place_order' && typeof amount === 'number' && amount > rails.limit) {
+    async ({ tool, amount, night, approved }) => {
+      if (tool === 'place_order' && typeof amount === 'number' && amount > rails.limit && !approved) {
         return out({
           decision: 'hold',
-          reason: `Total $${amount} is over the $${rails.limit} limit. Ask the user to confirm.`,
+          reason: `Total ${amount} is over the ${rails.limit} limit. Ask the user to confirm.`,
+        });
+      }
+      if (tool === 'place_order' && typeof amount === 'number' && amount > rails.limit && approved) {
+        return out({
+          decision: 'allow',
+          reason: `User explicitly confirmed the ${amount} purchase after the spending hold.`,
         });
       }
       if (tool === 'set_thermostat' && rails.quiet && night) {
