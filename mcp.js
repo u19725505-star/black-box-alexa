@@ -125,6 +125,7 @@ async function mcpConnect(){
 const _record=record;
 record=async function(e){
   const b=await _record(e);
+  if(e&&e.localOnly)return b;
   try{
     if(b.tool==='set_guardrail'){mcpQueue('set_guardrail',b.args||{})}
     else if(b.tool==='undo_action'){mcpQueue('undo_action',{count:1})}

@@ -118,10 +118,11 @@ $('qh').addEventListener('change',async()=>{
   $('qh').checked=S.quiet;
   $('qh').disabled=true;
   try{
-    await record({tool:'set_guardrail',args:{quiet:next},request:'Changed in Guardrails tab',reason:`You turned quiet hours ${next?'on':'off'}.`});
-    const synced=await mcpQ;
-    if(!synced) throw new Error('MCP server did not confirm the guardrail update');
+    // Update the remote policy first. Only commit the local state after the server confirms.
+    const remote=await mcpCall('set_guardrail',{quiet:next});
+    if(!remote||!remote.guardrails||remote.guardrails.quiet!==next) throw new Error('MCP server did not confirm the guardrail update');
     S.quiet=next;
+    await record({tool:'set_guardrail',args:{quiet:next},request:'Changed in Guardrails tab',reason:`You turned quiet hours ${next?'on':'off'}.`,localOnly:true});
     render();
     toast('Quiet hours '+(S.quiet?'ON':'OFF')+' · server synced','ok');
   }catch(e){
