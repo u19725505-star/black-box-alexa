@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Black Box for Alexa+</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 <script>
 window.addEventListener('error',function(e){
   var b=document.getElementById('err');
@@ -24,6 +24,25 @@ window.addEventListener('error',function(e){
   </div>
 </header>
 <div class="strip-wrap"><div class="strip" id="strip"></div></div>
+<section class="mcp-connect-card" aria-labelledby="mcp-connect-title">
+  <div class="mcp-connect-copy">
+    <div class="eyebrow"><span class="live-dot"></span> REMOTE SERVER CONNECTION</div>
+    <h2 id="mcp-connect-title">Connect the MCP server</h2>
+    <p>The hosted MCP server is already deployed. You do not need to upload anything here. Tap Connect to initialize the remote session and discover the tools available to this demo.</p>
+    <div class="endpoint"><span class="endpoint-dot"></span><code>https://black-box-alexa.onrender.com/mcp</code><button id="copyMcpUrl" type="button">Copy URL</button></div>
+    <div id="mcp-connect-status" class="connect-status" role="status" aria-live="polite">Not connected · tap Connect to begin</div>
+  </div>
+  <div class="mcp-connect-actions">
+    <div class="connect-orb"><span></span></div>
+    <button id="mcp-connect-button" class="go connect-button" type="button">Connect to MCP server</button>
+    <button id="mcp-retry-button" type="button" hidden>Retry connection</button>
+    <div class="connect-meta"><span id="mcp-tool-count">Tools not loaded</span><span>Streamable HTTP</span></div>
+  </div>
+  <div class="mcp-tools-wrap" id="mcp-tools-wrap" hidden>
+    <div class="mcp-tools-heading"><strong>Discovered MCP tools</strong><span id="mcp-protocol-label">Remote server</span></div>
+    <div id="mcp-tools-list" class="mcp-tools-list"></div>
+  </div>
+</section>
 <section class="hero">
   <div class="hero-main">
     <div class="eyebrow"><span class="live-dot"></span> ACTION TRANSPARENCY · MCP DEMO</div>
