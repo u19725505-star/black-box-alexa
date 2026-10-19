@@ -69,6 +69,19 @@ function mcpQueue(name,args){
   mcpQ=p;
   return p;
 }
+/* Queue policy checks behind earlier guardrail updates. Fail closed if the server cannot decide. */
+function mcpAuthorize(tool,args,confirmed){
+  const p=mcpQ.then(function(){
+    return mcpCall('check_action',{
+      tool:tool,
+      amount:tool==='place_order'&&args?args.amount:undefined,
+      night:tool==='set_thermostat'?!!S.night:undefined,
+      approved:!!confirmed
+    });
+  });
+  mcpQ=p.catch(function(){return null});
+  return p;
+}
 async function mcpConnect(){
   setMcpPill('connecting…','');
   try{
@@ -90,9 +103,6 @@ const _record=record;
 record=async function(e){
   const b=await _record(e);
   try{
-    if(b.tool==='place_order'||b.tool==='set_thermostat'){
-      mcpQueue('check_action',{tool:b.tool,amount:b.args&&b.args.amount,night:S.night});
-    }
     if(b.tool==='set_guardrail'){mcpQueue('set_guardrail',b.args||{})}
     else if(b.tool==='undo_action'){mcpQueue('undo_action',{count:1})}
     else{mcpQueue('record_action',{tool:b.tool,args:b.args||{},request:b.request,reason:b.reason,status:b.status})}
