@@ -35,7 +35,7 @@ When an assistant can take actions, users need to understand what was requested,
 4. Open **Ledger**, select **Verify chain**, then **Tamper demo**, then **Verify chain** again. The demo should show the edited local record as broken.
 5. Review **MCP traffic** at the bottom of the Ledger tab to see calls made to the remote server.
 
-The browser's simulated decisions and local ledger are separate from the remote MCP server's decisions and ledger. The traffic panel is evidence that calls were attempted and returned results; it does not mean the remote server enforced the browser's action.
+The browser now waits for the remote MCP server's policy result before executing a simulated order, thermostat change, or calendar action. A `block` stops the action, a `hold` pauses for typed confirmation, and an unavailable/invalid policy response fails closed. The browser and server still keep separate ledgers, so their entry IDs and histories can diverge.
 
 ## MCP server
 
@@ -98,7 +98,7 @@ The static web app consists of `index.html`, `style.css`, and the browser JavaSc
 This section is important when evaluating the prototype:
 
 - **Not connected to Alexa+.** The UI is a simulation. The project does not invoke the real Alexa+ service or connect to a real Amazon account, shopping service, thermostat, or calendar.
-- **Server checks do not gate simulated execution yet.** The browser currently makes its own spending and quiet-hours decisions. It sends `check_action` to the server asynchronously as a separate call, but it does not wait for or enforce the server's verdict before executing a simulated action. Therefore, the current build does not demonstrate a server-enforced action gateway.
+- **The server policy gates simulated execution.** Before a simulated order, thermostat change, or calendar event is applied, the browser waits for `check_action`. A `block` prevents execution; a `hold` requires the user to type a confirmation; a confirmed over-limit purchase is rechecked with the explicit approval flag. If the policy call fails or returns an invalid decision, the browser does not execute the action. This gate applies to the browser simulation, not to real Alexa+ or external services.
 - **Two independent ledgers.** The browser and server each maintain their own ledger and guardrail state. Calls are queued and mirrored for demonstration, but their entries and IDs are not a single authoritative record and can diverge.
 - **Undo is simulated.** The browser reverses its own in-memory demo state. The server tool marks eligible server-ledger records as undone and returns targets; it cannot reverse an external action by itself.
 - **Hash-chain integrity has a limited scope.** Hashes detect edits to fields included in the fingerprint when the chain is verified. The current fingerprint includes the entry ID, timestamp, tool, arguments, request, reason, status, and previous hash. It does not include the separate `undone` flag. A hash chain alone does not provide authenticated identity, durable storage, or protection against an operator who can rewrite the whole ledger and recompute hashes.
