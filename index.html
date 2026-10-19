@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Black Box for Alexa+</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 <script>
 window.addEventListener('error',function(e){
   var b=document.getElementById('err');
@@ -93,7 +93,7 @@ window.addEventListener('error',function(e){
       <h2>Guardrails</h2>
       <div class="ctl"><div>Ask before spending over<small id="limv">$25</small></div><input type="range" id="lim" min="5" max="200" step="5" value="25"></div>
       <div class="ctl"><div>Quiet hours<small>No thermostat changes at night</small></div><label class="sw"><input type="checkbox" id="qh" checked><i></i></label></div>
-      <div class="ctl"><div>Simulated time<small id="timev">3:00 PM</small></div><label class="sw"><input type="checkbox" id="nt"><i></i></label></div>
+      <div class="ctl"><div>Simulated time<small id="timev">3:00 PM (day)</small></div><label class="time-control" for="nt"><span class="sr-only">Choose simulated time</span><select id="nt" class="time-select" aria-label="Simulated time"><option value="day">3:00 PM · Day</option><option value="night">11:00 PM · Night</option></select></label></div>
     </div>
   </section>
   <section class="panel" id="p-home">
@@ -106,8 +106,8 @@ window.addEventListener('error',function(e){
 <footer>Simulated Alexa+ experience · MIT licensed · no real devices or purchases</footer>
 <div id="toasts"></div>
 <script src="core.js?v=4"></script>
-<script src="ui.js?v=2"></script>
-<script src="main.js?v=4"></script>
-<script src="mcp.js?v=5"></script>
+<script src="ui.js?v=3"></script>
+<script src="main.js?v=5"></script>
+<script src="mcp.js?v=6"></script>
 </body>
 </html>
