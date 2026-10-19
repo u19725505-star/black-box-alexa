@@ -1,157 +1,234 @@
 # Black Box for Alexa+
 
-**A simulated assistant experience and MCP server for exploring action guardrails, explanations, undo workflows, and hash-chain verification.**
+<p align="center">
+  <strong>Make assistant actions visible, explainable, and auditable.</strong><br>
+  A browser-based AI-assistant simulation + a live Model Context Protocol (MCP) server.
+</p>
 
-When an assistant can take actions, users need to understand what was requested, what the prototype decided, what was recorded, and whether a record was changed afterward. Black Box is a browser-based simulation paired with a Node.js Model Context Protocol (MCP) server. It is a prototype for exploring these ideas—not an integration with the real Alexa+ service.
+<p align="center">
+  <a href="https://u19725505-star.github.io/black-box-alexa/"><strong>▶ OPEN LIVE DEMO</strong></a>
+  &nbsp; · &nbsp;
+  <a href="https://u19725505-star.github.io/black-box-alexa/mcptest.html"><strong>RUN MCP SMOKE TEST</strong></a>
+  &nbsp; · &nbsp;
+  <a href="https://black-box-alexa.onrender.com/health"><strong>SERVER HEALTH</strong></a>
+</p>
 
-- **Web demo:** https://u19725505-star.github.io/black-box-alexa/
-- **MCP endpoint:** https://black-box-alexa.onrender.com/mcp
-- **MCP test page:** https://u19725505-star.github.io/black-box-alexa/mcptest.html
-- **License:** MIT
+<p align="center">
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2563eb">
+  <img alt="Node.js 18+" src="https://img.shields.io/badge/Node.js-18%2B-339933">
+  <img alt="MCP transport" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-7c3aed">
+  <img alt="Status" src="https://img.shields.io/badge/status-hackathon%20prototype-orange">
+</p>
 
-## What the prototype demonstrates
+> **The idea:** Before an assistant acts, people should be able to see the decision. After it acts, they should be able to inspect the record. If the record is changed, the system should have a way to flag it.
 
-- **Simulated assistant actions:** Type requests to place a mock order, change a simulated thermostat, or add a calendar event. No real purchases, devices, or calendar accounts are used.
-- **Configurable demo guardrails:** Set a spending threshold and enable quiet hours. In the browser simulation, orders over the threshold are held for typed confirmation; thermostat changes are blocked when quiet hours and simulated night mode are both on.
-- **Action explanations:** Ask “Why did you do that?” or select **Why?** on a ledger entry to see the request, reason, status, and hash information.
-- **Undo in the simulation:** Undo recent completed simulated actions such as orders, thermostat changes, and calendar events. Undo operations are shown as additional local ledger entries.
-- **Hash-chain verification:** Each ledger entry includes a SHA-256 hash and the previous entry's hash. The verification control recomputes the chain and identifies the first entry that no longer verifies.
-- **Tamper demonstration:** The demo edits a stored request without recalculating its hash, then shows the verification failure.
-- **MCP server and traffic panel:** The browser connects to the deployed MCP endpoint, lists available tools, and queues server calls. The Ledger tab adds a panel showing recent MCP calls, durations, and results.
-- **Speech output:** The browser may read assistant responses aloud using its speech-synthesis support. Input is typed; speech recognition is not implemented in this prototype.
+Black Box for Alexa+ is an **experimental, non-operational prototype** exploring that interaction pattern. It pairs a polished browser experience with a deployed Node.js MCP server to demonstrate policy checks, user confirmation, action explanations, simulated undo, and hash-chain integrity checks. It is **not an integration with the real Amazon Alexa+ service** and does not operate real accounts, purchases, calendars, or devices.
 
-## Judge quick start — follow these steps in order
+---
 
-**Expected time: 3–5 minutes.** The server is already hosted on Render; judges do not need to upload or install it.
+## See it in action
 
-### 1. Open the live website
+### 1. The assistant experience
 
-Go to the [Black Box for Alexa+ web demo](https://u19725505-star.github.io/black-box-alexa/). Near the top, find **Connect the MCP server**. If you do not see the connection panel, refresh the page once to load the latest version.
+The web demo turns ordinary requests into visible policy decisions. Low-cost simulated actions can proceed, higher-cost actions can be held for confirmation, and restricted actions can be blocked with an explanation.
 
-### 2. Connect to the remote MCP server
+![Black Box for Alexa+ website demo showing the simulated assistant and audit ledger](demo-evidence/IMG_1759.jpeg)
 
-Tap **Connect to MCP server** and wait for the status to change to **Connected**. The panel should show the number of discovered tools and a list of tool names. The first request can take up to a minute if the free hosted service is waking from sleep.
+### 2. The MCP server test
 
-If the connection fails, tap **Retry connection** once. If it still fails, continue to the [standalone MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) to capture the diagnostic result; the endpoint is `https://black-box-alexa.onrender.com/mcp`.
+The separate test page connects to the hosted MCP endpoint and exercises tool discovery, policy decisions, ledger recording, verification, explanation, undo, and intentional tamper detection.
 
-### 3. Run the assistant demo
+![Black Box for Alexa+ MCP test results showing successful smoke checks](demo-evidence/IMG_1760.jpeg)
 
-Tap **Run demo**, or open the **Assistant** tab and enter these requests one at a time:
+The screenshots are captured demonstration evidence. The test page is a **manual smoke test**, not a comprehensive automated security assessment.
 
-1. `Order groceries $18` — a low-value simulated purchase.
-2. `Order headphones $79` — should be held by the default $25 spending rule.
-3. Type `confirm` if you want to demonstrate the approval flow.
-4. `Set thermostat to 66` — a simulated thermostat action.
-5. `Book dinner Friday 7pm` — a simulated calendar action.
-6. `Why did you do that?` — asks for an explanation of the latest action.
-7. `Undo the last 2` — demonstrates the simulated undo workflow.
+---
 
-These are examples for the prototype, not real purchases, device commands, or calendar bookings.
+## Why this project matters
 
-### 4. Demonstrate the guardrails
+As assistants gain the ability to trigger actions, a useful interface needs to answer more than “Did it work?”
 
-Open **Guardrails** and review the spending threshold and quiet-hours setting. Enable simulated night mode and quiet hours, then try `Set thermostat to 66`. The expected result is a blocked simulated action with an explanation. Return to the Guardrails tab to restore settings if needed.
+- **What was requested?**
+- **What policy decision was made—and why?**
+- **Was the action allowed, held, or blocked?**
+- **What was written to the audit trail?**
+- **Does the recorded history still verify?**
+- **Can the user inspect or reverse a simulated action?**
 
-### 5. Inspect the ledger and verify integrity
+Black Box makes these questions tangible in a small, runnable prototype. It explores a user-facing pattern for **action transparency** rather than claiming to solve trust or security for production assistants.
 
-Open **Ledger** and review the recorded actions, their statuses, and explanations. Run **Verify chain** to check the local ledger. Then run **Tamper demo** followed by **Verify chain** again; the intentional edit should be detected. Reset the local demo afterward if you want a clean presentation.
+## Try the live demo in 3–5 minutes
 
-### 6. Run the separate live MCP test (recommended evidence)
+**Start here:** [Open Black Box for Alexa+](https://u19725505-star.github.io/black-box-alexa/)
 
-Open the [MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) and tap **Run MCP test**. This directly calls the hosted server and tests initialization, tool discovery, policy decisions, server-ledger recording, explanation, undo, hash verification, and tamper detection. A successful run ends with **ALL TESTS PASSED**.
+1. **Connect to MCP.** Tap **Connect to MCP server** and wait for the tool list. The free hosted service may need up to a minute to wake.
+2. **Try an action under the threshold.** Enter `Order groceries $18`. In the default demo configuration, it should be allowed and recorded as `DONE`.
+3. **Trigger a spending hold.** Enter `Order headphones $79`. With the default $25 limit, it should be marked `HELD` pending explicit confirmation.
+4. **Confirm deliberately.** Type `confirm` to demonstrate the simulated confirmation flow. The history retains the held request and records the follow-up separately.
+5. **Trigger a block.** In **Guardrails**, enable quiet hours and set simulated time to night. Try `Set thermostat to 66`; the policy should block it.
+6. **Inspect the audit trail.** Open **Ledger** and tap **Verify chain**. Review the status, reason, and previous-hash information.
+7. **Run the MCP checks.** Open the [MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) and tap **Run MCP test**.
 
-**Important:** the MCP test page calls the shared server's `demo_reset` and `demo_tamper` tools. It clears and intentionally modifies the server's demo ledger during the test, so do not run it while another judge is using the shared server. It resets the server ledger at the end of a successful run.
+These are mock scenarios. No real order, device change, or calendar booking occurs.
 
-### What judges should verify
+### Recorded smoke-test evidence
 
-- The main website explicitly reports a successful MCP connection and displays discovered tools.
-- The high-value purchase and quiet-hours scenario produce the expected policy decisions.
-- The app explains actions and shows local ledger verification results.
-- The standalone test page reports its individual checks and final result.
-- The demo is clearly labeled as simulated and does not claim to control real Alexa+, devices, shopping, or calendars.
+In the captured MCP test run, the page reported **ALL TESTS PASSED in 1.1s**. The displayed checks included:
 
+| Check | Observed result |
+|---|---|
+| MCP initialization | PASS |
+| Tool discovery | 9 tools listed |
+| $79 order policy | Held above the $25 demo limit |
+| Thermostat at night | Blocked by the quiet-hours rule |
+| Ledger recording and chaining | Two records chained in the test scenario |
+| Chain verification | Intact before the tamper check |
+| Explanation and undo | Passed in the test scenario |
+| Tamper detection | Broken chain detected at entry #1 |
 
-## MCP server
+These results describe one captured manual smoke-test run; they are not a claim of exhaustive coverage, independent security review, or production reliability.
 
-The server is implemented in Node.js using Express, the official Model Context Protocol TypeScript SDK, and Zod. It exposes a Streamable HTTP endpoint at `POST /mcp` and a health endpoint at `GET /health`. The server uses JSON-RPC MCP requests and registers the following tools:
+---
+
+## How it works
+
+```text
+User enters a simulated request
+              |
+              v
+       Browser experience
+              |
+              v
+       MCP policy check
+              |
+       +------+------+ 
+       |      |      |
+     ALLOW   HOLD   BLOCK
+       |      |      |
+       |   Explicit   Explain
+       |  confirmation decision
+       +------+------+
+              |
+              v
+     Simulated action record
+              |
+              v
+      Hash-chained ledger
+              |
+              v
+    Verify + explain + inspect
+```
+
+The app maintains **two separate ledgers**: one in the browser and one on the server. The Ledger panel verifies each chain independently, then compares selected logical fields—entry ID, tool, arguments, request, reason, and status. Because each side records independently, timestamps and hashes are not expected to be identical.
+
+A synchronization result of `MATCH` means those compared fields agree and both chain checks passed at that moment. It is **not** proof of authenticated identity, identical cryptographic chains, durable storage, or production-grade tamper resistance.
+
+## Features
+
+- **Action guardrails:** simulated spending threshold and quiet-hours rules.
+- **Explicit confirmation path:** over-threshold mock purchases are held before the user confirms.
+- **Decision explanations:** view the request, status, reason, arguments, and hash-chain details.
+- **Simulated undo:** inspect the undo workflow without connecting to external services.
+- **Hash-chain verification:** entries include a hash and previous-hash link; verification can identify a modified record.
+- **Intentional tamper demo:** changes a demo record so verification can demonstrate detection.
+- **MCP over Streamable HTTP:** browser client connects to the hosted server, discovers tools, and calls them.
+- **MCP traffic panel:** inspect recent calls, results, and durations.
+- **Accessible status feedback:** connection and synchronization states are presented in the interface.
+- **Responsive, static front end:** HTML, CSS, and JavaScript; no front-end build step required.
+
+## MCP tools
+
+The server currently exposes nine tools:
 
 | Tool | Purpose |
 |---|---|
-| `check_action` | Returns `allow`, `hold`, or `block` based on the server's current spending limit and quiet-hours settings. |
-| `record_action` | Appends an action record to the server's hash-chained ledger. |
-| `explain_action` | Returns a selected or most recent server-ledger entry. |
-| `undo_action` | Marks eligible server-ledger entries as undone and appends reversal records; returns the actions the caller should reverse. It does not itself operate a real device or external service. |
-| `set_guardrail` | Updates the server's spending limit and/or quiet-hours setting and records the change. |
-| `verify_chain` | Recomputes the server ledger's hashes and reports whether the chain verifies. |
-| `list_ledger` | Returns server-ledger entries and current server guardrails. |
-| `demo_tamper` | Demo-only tool that changes a server-ledger request without recalculating its hash. |
-| `demo_reset` | Demo-only tool that clears the server ledger and restores default guardrails. |
+| `check_action` | Evaluate a simulated action against current server guardrails. |
+| `record_action` | Append an action record to the server ledger. |
+| `explain_action` | Return details for a selected or recent record. |
+| `undo_action` | Mark eligible server records as undone and return reversal targets. |
+| `set_guardrail` | Change the server's demo guardrail settings. |
+| `verify_chain` | Recompute and verify the server ledger's hash chain. |
+| `list_ledger` | Read server records and current server guardrails. |
+| `demo_tamper` | Intentionally alter a record to demonstrate detection. |
+| `demo_reset` | Clear the server ledger and restore demo defaults. |
 
-The browser's MCP client sends an `initialize` request using protocol version `2025-11-25`, then calls `tools/list` and `tools/call`. The server is configured for stateless Streamable HTTP transport. The server's ledger and guardrails are held in process memory, so they reset when the server restarts.
+**Undo is not a real-world reversal.** The MCP tool reports which simulated records should be reversed; it does not control a real device or reverse an external transaction.
 
-## Test the deployed MCP server
+## Architecture and implementation
 
-Open the [MCP test page](https://u19725505-star.github.io/black-box-alexa/mcptest.html) and tap **Run MCP test**. The page exercises initialization, tool discovery, spending and quiet-hours decisions, recording, verification, explanation, undo, tamper detection, and reset against the deployed endpoint.
+- **Frontend:** static HTML, CSS, and JavaScript hosted with GitHub Pages.
+- **Backend:** Node.js 18+, Express, the official Model Context Protocol TypeScript SDK, and Zod.
+- **Transport:** MCP Streamable HTTP at `POST /mcp`.
+- **Health endpoint:** `GET /health`.
+- **Hosting:** GitHub Pages for the web client; Render for the MCP service.
+- **State:** the server ledger and guardrails are held in process memory and reset when the service restarts.
 
-The test page is a manual smoke test, not a comprehensive automated test suite. It calls the shared live server and uses the demo reset/tamper tools, so avoid running it while another person is relying on that server's demo state.
+### Repository map
 
-## Run locally
+| Path | Responsibility |
+|---|---|
+| `index.html` | Page structure, tabs, and controls |
+| `style.css` | Layout, responsive styling, and animation |
+| `core.js` | Browser state, local simulated actions, ledger, hashing, and undo behavior |
+| `main.js` | Command parsing, local decision flow, and event wiring |
+| `ui.js` | UI rendering, ledger views, guardrails, and integrity controls |
+| `mcp.js` | Browser MCP client, queued server calls, and traffic display |
+| `ledger-sync.js` | Independent chain checks and logical content comparison |
+| `server.js` | MCP server, tools, server ledger, guardrails, and HTTP endpoints |
+| `mcptest.html` | Browser-based manual MCP smoke test |
+| `demo-evidence/` | Screenshots of the website and MCP test results |
+| `package.json` | Dependencies and start command |
 
-Requirements: Node.js 18 or newer.
+## Run the MCP server locally
+
+Requirements: **Node.js 18 or newer**.
 
 ```bash
 npm install
 npm start
 ```
 
-The server listens on port `3000`, or the port supplied by the `PORT` environment variable.
+By default, the server listens on port `3000` (or the `PORT` environment variable).
 
 - MCP endpoint: `http://localhost:3000/mcp`
 - Health check: `http://localhost:3000/health`
 
-The static web app consists of `index.html`, `style.css`, and the browser JavaScript files. To use a local server, change the `MCP_URL` constant near the top of `mcp.js` to `http://localhost:3000/mcp`. When testing locally, serve the static files from a local HTTP server rather than opening the HTML file directly.
+To connect the static front end to your local server, update the `MCP_URL` constant near the top of `mcp.js` to `http://localhost:3000/mcp`, then serve the static files through a local HTTP server. Do not open the HTML file directly from the filesystem.
 
-## Repository map
+## Security boundaries and limitations
 
-| File | Role |
-|---|---|
-| `index.html` | Page structure, tabs, controls, and script loading. |
-| `style.css` | Responsive layout, visual styling, and animations. |
-| `core.js` | Browser-side state, simulated actions, local ledger, hashing, speech synthesis, and local undo behavior. |
-| `main.js` | Typed command parsing, browser-side guardrail decisions, demo narration, and UI event wiring. |
-| `ui.js` | Rendering for the ledger, simulated home, guardrails, chain verification, tamper demo, and reset. |
-| `mcp.js` | Browser MCP client, server-call queue, MCP traffic panel, and mirroring of selected local events. |
-| `server.js` | MCP server, tools, in-memory server ledger and guardrails, HTTP endpoint, and health route. |
-| `mcptest.html` | Manual browser-based smoke test for the deployed MCP endpoint. |
-| `package.json` | Node package metadata, start command, and dependencies. |
-| `.gitignore` | Ignore rules for dependencies, build output, logs, and local environment files. |
-| `LICENSE` | MIT license. |
+This project is a **public hackathon demo**, not a production security product.
 
-## Current limitations and security boundaries
+- **No real Alexa+ integration.** All actions are simulated. No Amazon account, retailer, calendar, or smart-home device is connected.
+- **Public unauthenticated endpoint.** The hosted MCP server exposes state-mutating tools, including `record_action`, `set_guardrail`, `demo_tamper`, and `demo_reset`, without authentication. Anyone who can reach the endpoint may change shared demo state. CORS is not authentication.
+- **Do not send sensitive data.** Never use this endpoint for personal information, secrets, real purchases, or real device commands.
+- **In-memory state is temporary.** Server state can reset when Render restarts the service. The demo does not provide durable audit storage.
+- **Approval is not cryptographically authenticated.** The server currently trusts an approval flag supplied by the caller; this is not a secure human-identity or consent protocol.
+- **Independent ledgers can diverge.** The browser and server maintain separate records. Logical field comparison is useful for the demo but is not a distributed consistency guarantee.
+- **Hash chains have a limited threat model.** They can detect edits to fields included in the fingerprint when verification is run, but do not prove who created a record or prevent an operator from rewriting the full ledger and recomputing hashes. The current server fingerprint does not include the separate `undone` flag.
+- **Destructive test controls change shared state.** The MCP smoke test uses the demo tamper/reset tools. Do not run it while someone else is relying on the live demo state.
+- **Speech recognition is not implemented.** Browser speech synthesis may read responses aloud, but input is typed.
 
-This section is important when evaluating the prototype:
+### What production hardening would require
 
-- **Not connected to Alexa+.** The UI is a simulation. The project does not invoke the real Alexa+ service or connect to a real Amazon account, shopping service, thermostat, or calendar.
-- **The server policy gates simulated execution.** Before a simulated order, thermostat change, or calendar event is applied, the browser waits for `check_action`. A `block` prevents execution; a `hold` requires the user to type a confirmation; a confirmed over-limit purchase is rechecked with an approval flag. If the policy call fails or returns an invalid decision, the browser does not execute the action. The server currently trusts that flag from its caller; it is not a cryptographically authenticated human-approval protocol. This gate applies to the browser simulation, not to real Alexa+ or external services.
-- **Two independent ledgers.** The browser and server each maintain their own ledger and guardrail state. Calls are queued and mirrored for demonstration, but their entries and IDs are not a single authoritative record and can diverge.
-- **Synchronization is a logical comparison, not proof of identical cryptographic chains.** The Ledger panel verifies each chain independently, then compares entry ID, tool, arguments, request, reason, and status. Timestamps and hashes are excluded because the browser and server record independently. A `MATCH` means these compared fields agree and both chain checks pass; it does not establish authenticated identity or production-grade tamper resistance.
-- **Undo is simulated.** The browser reverses its own in-memory demo state. The server tool marks eligible server-ledger records as undone and returns targets; it cannot reverse an external action by itself.
-- **Hash-chain integrity has a limited scope.** Hashes detect edits to fields included in the fingerprint when the chain is verified. The current fingerprint includes the entry ID, timestamp, tool, arguments, request, reason, status, and previous hash. It does not include the separate `undone` flag. A hash chain alone does not provide authenticated identity, durable storage, or protection against an operator who can rewrite the whole ledger and recompute hashes.
-- **Demo tools are destructive.** `demo_reset` clears the server ledger and restores default guardrails; `demo_tamper` intentionally edits a record. They are exposed by this demo server without authentication and must not be treated as production-safe administrative endpoints.
-- **In-memory state is temporary.** Server ledger and guardrail state reset on server restart. The browser ledger and simulated home state are in page memory and reset when the app is reset or reloaded.
-- **No speech input.** Responses can use browser speech synthesis, but commands are entered by typing. Speech recognition is not implemented.
+Before this concept could be considered for real services, it would need authenticated clients, server-side authorization, a trustworthy confirmation protocol, protected or removed destructive tools, durable append-only storage, complete integrity coverage for mutable fields, and independent security testing. Those capabilities are **not claimed by this prototype**.
 
-The next engineering steps are to authenticate policy requests and approval signals, add durable storage, protect destructive demo tools, and include all mutable state in integrity verification. The current gate protects the browser simulation only; it is not a security boundary for real services.
+## Roadmap
 
+- [ ] Authenticate MCP clients and authorize each tool.
+- [ ] Separate development-only tamper/reset tools from public deployments.
+- [ ] Persist records in a durable store with explicit retention policy.
+- [ ] Include every mutable field in integrity verification and test undo semantics.
+- [ ] Add automated regression tests and repeatable CI results.
+- [ ] Evaluate the UX with users and document usability findings.
 
-### Public demo safety note
+## Project details
 
-The hosted MCP endpoint is a public, unauthenticated hackathon demo. Its `demo_reset`, `demo_tamper`, `set_guardrail`, and `record_action` tools can change shared in-memory demo state. Anyone able to call the endpoint may invoke these tools; CORS is not authentication. Do not send secrets, personal information, or real-world commands to this service, and do not rely on it to protect actual purchases, devices, or accounts. For a wider public release, isolate or remove destructive tools and add server-side authentication and authorization.
+- **License:** MIT — see [LICENSE](LICENSE).
+- **Live web demo:** https://u19725505-star.github.io/black-box-alexa/
+- **MCP test page:** https://u19725505-star.github.io/black-box-alexa/mcptest.html
+- **MCP endpoint:** https://black-box-alexa.onrender.com/mcp
 
-## Built during the hackathon
-
-The project is intended as a hackathon prototype and is licensed under MIT.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+<p align="center">
+  <strong>See the decision. Understand the reason. Inspect the record.</strong>
+</p>
