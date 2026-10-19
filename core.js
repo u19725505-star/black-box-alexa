@@ -120,4 +120,13 @@ async function exec(p,confirmed){
   }
   render();
 }
-/* END */
+['click','touchend','keydown'].forEach(function(ev){
+  document.addEventListener(ev,function(){
+    try{
+      if(!window.speechSynthesis||speechSynthesis.speaking||speechSynthesis.pending)return;
+      var u=new SpeechSynthesisUtterance(' ');
+      u.volume=0;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  },true);
+}); 
