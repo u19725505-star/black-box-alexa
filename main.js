@@ -43,12 +43,7 @@ async function act(text){
     const m=t.match(/\$\s?(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:dollars?|bucks)/i);
     const amount=m?+(m[1]||m[2]):20;
     const item=t.replace(/\$\s?\d+(\.\d+)?|\d+(\.\d+)?\s*(dollars?|bucks)/ig,'').replace(/^(please\s+)?(order|buy)\s*/i,'').replace(/\s+for\s*$/i,'').trim()||'groceries';
-    const p={tool:'place_order',args:{item,amount},request:t,reason:`You asked me to buy ${item}. Total $${amount} is within your $${S.limit} limit.`};
-    if(amount>S.limit){
-      S.pending=p;
-      await record({tool:'place_order',args:{item,amount},request:t,reason:`Total $${amount} is over your $${S.limit} limit, so I paused for your approval.`,status:'held'});
-      return say('ai',`That is $${amount}, over your $${S.limit} limit. Say "confirm" to approve or "cancel".`);
-    }
+    const p={tool:'place_order',args:{item,amount},request:t,reason:`You asked me to buy ${item}. The MCP server will evaluate your spending guardrail before execution.`};
     return exec(p);
   }
   if(/book|schedule|calendar/.test(l)){
