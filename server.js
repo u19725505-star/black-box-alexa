@@ -66,13 +66,13 @@ function buildServer() {
       if (tool === 'place_order' && typeof amount === 'number' && amount > rails.limit && !approved) {
         return out({
           decision: 'hold',
-          reason: `Total ${amount} is over the ${rails.limit} limit. Ask the user to confirm.`,
+          reason: `Total $${amount} is over the $${rails.limit} limit. Ask the user to confirm.`,
         });
       }
       if (tool === 'place_order' && typeof amount === 'number' && amount > rails.limit && approved) {
         return out({
           decision: 'allow',
-          reason: `User explicitly confirmed the ${amount} purchase after the spending hold.`,
+          reason: `User explicitly confirmed the $${amount} purchase after the spending hold.`,
         });
       }
       if (tool === 'set_thermostat' && rails.quiet && night) {
