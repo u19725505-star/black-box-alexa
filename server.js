@@ -45,7 +45,7 @@ function verifyChain() {
 
 const out = (obj) => ({ content: [{ type: 'text', text: JSON.stringify(obj) }] });
 
-/* ---------- MCP server: tools Alexa+ (or any MCP client) can call ---------- */
+/* ---------- MCP tools exposed to compatible clients; no direct Alexa+ integration ---------- */
 function buildServer() {
   const server = new McpServer({ name: 'black-box-alexa', version: '1.0.0' });
 
