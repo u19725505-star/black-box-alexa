@@ -37,11 +37,7 @@ async function act(text){
   }
   if(/thermostat|temperature|degrees/.test(l)){
     const m=l.match(/(\d{2})/);const temp=m?+m[1]:68;
-    if(S.quiet&&S.night){
-      await record({tool:'set_thermostat',args:{temp},request:t,reason:'Blocked by your quiet-hours guardrail (no thermostat changes at night).',status:'blocked'});
-      return say('ai','I did not change it. Your quiet-hours guardrail blocks thermostat changes at night.');
-    }
-    return exec({tool:'set_thermostat',args:{temp},request:t,reason:`You asked for ${temp}°F. No guardrail applied.`});
+    return exec({tool:'set_thermostat',args:{temp},request:t,reason:`You asked for ${temp}°F. The MCP server will evaluate quiet-hours policy before execution.`});
   }
   if(/\b(order|buy)\b/.test(l)){
     const m=t.match(/\$\s?(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:dollars?|bucks)/i);
