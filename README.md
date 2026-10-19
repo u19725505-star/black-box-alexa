@@ -134,6 +134,7 @@ This section is important when evaluating the prototype:
 - **Not connected to Alexa+.** The UI is a simulation. The project does not invoke the real Alexa+ service or connect to a real Amazon account, shopping service, thermostat, or calendar.
 - **The server policy gates simulated execution.** Before a simulated order, thermostat change, or calendar event is applied, the browser waits for `check_action`. A `block` prevents execution; a `hold` requires the user to type a confirmation; a confirmed over-limit purchase is rechecked with an approval flag. If the policy call fails or returns an invalid decision, the browser does not execute the action. The server currently trusts that flag from its caller; it is not a cryptographically authenticated human-approval protocol. This gate applies to the browser simulation, not to real Alexa+ or external services.
 - **Two independent ledgers.** The browser and server each maintain their own ledger and guardrail state. Calls are queued and mirrored for demonstration, but their entries and IDs are not a single authoritative record and can diverge.
+- **Synchronization is a logical comparison, not proof of identical cryptographic chains.** The Ledger panel verifies each chain independently, then compares entry ID, tool, arguments, request, reason, and status. Timestamps and hashes are excluded because the browser and server record independently. A `MATCH` means these compared fields agree and both chain checks pass; it does not establish authenticated identity or production-grade tamper resistance.
 - **Undo is simulated.** The browser reverses its own in-memory demo state. The server tool marks eligible server-ledger records as undone and returns targets; it cannot reverse an external action by itself.
 - **Hash-chain integrity has a limited scope.** Hashes detect edits to fields included in the fingerprint when the chain is verified. The current fingerprint includes the entry ID, timestamp, tool, arguments, request, reason, status, and previous hash. It does not include the separate `undone` flag. A hash chain alone does not provide authenticated identity, durable storage, or protection against an operator who can rewrite the whole ledger and recompute hashes.
 - **Demo tools are destructive.** `demo_reset` clears the server ledger and restores default guardrails; `demo_tamper` intentionally edits a record. They are exposed by this demo server without authentication and must not be treated as production-safe administrative endpoints.
@@ -141,6 +142,11 @@ This section is important when evaluating the prototype:
 - **No speech input.** Responses can use browser speech synthesis, but commands are entered by typing. Speech recognition is not implemented.
 
 The next engineering steps are to authenticate policy requests and approval signals, add durable storage, protect destructive demo tools, and include all mutable state in integrity verification. The current gate protects the browser simulation only; it is not a security boundary for real services.
+
+
+### Public demo safety note
+
+The hosted MCP endpoint is a public, unauthenticated hackathon demo. Its `demo_reset`, `demo_tamper`, `set_guardrail`, and `record_action` tools can change shared in-memory demo state. Anyone able to call the endpoint may invoke these tools; CORS is not authentication. Do not send secrets, personal information, or real-world commands to this service, and do not rely on it to protect actual purchases, devices, or accounts. For a wider public release, isolate or remove destructive tools and add server-side authentication and authorization.
 
 ## Built during the hackathon
 
