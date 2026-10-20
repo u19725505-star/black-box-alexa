@@ -26,6 +26,16 @@ Black Box for Alexa+ is an **experimental, non-operational prototype** exploring
 
 ---
 
+## Demo video
+
+[![Watch the Black Box for Alexa+ demo on YouTube](https://img.youtube.com/vi/lWHUGFvwmRw/hqdefault.jpg)](https://www.youtube.com/watch?v=lWHUGFvwmRw)
+
+**▶ [Watch the Black Box for Alexa+ demo on YouTube](https://www.youtube.com/watch?v=lWHUGFvwmRw)**
+
+The video introduces the prototype. After watching, try the [live demo](https://u19725505-star.github.io/black-box-alexa/) and follow the [3–5 minute walkthrough](#try-the-live-demo-in-3–5-minutes).
+
+---
+
 ## See it in action
 
 ### 1. The assistant experience
